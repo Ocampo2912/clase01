@@ -1,25 +1,38 @@
 
 ### PARTE 1 ####
  
-var <- function(elevacion){
-  for (x in elevation){
-    if (elevacion >=1000 | elevacion <= 3000){
+#variable x que depende de la elevacion 
+#entre 1000 y 3000 m <- variable -2 cada 500 m
+#entre 3000 y 4000 m <- variable - 0.5 
+#> 4000 <- variable constante
+#funcion solo con el valor de elevacion 
+
+library(tidyverse)
+library(readr)
+library(tidyverse)
+library(dplyr)
+
+##
+
+presion <- function(altitud) {
+  if (altitud >= 1000 & altitud <= 3000) {
+    dif_alt = altitud - 1000
+    dif_pres = (2)*(dif_alt/500)
+    pres = 81.4 - dif_pres
+    print(pres)
+  } else if (altitud > 3000 & altitud <= 4000) {
+    dif_alt = altitud - 3000
+    dif_pres = (0.5)*(dif_alt/500)
+    pres = 73.4 - dif_pres
+    print(pres)
+  } else if (altitud > 4000) {
+    pres = 72.4
+    print(pres)
+  } else {
+    print("Valor no registrado")
   }
-  
-    
-  } 
 }
-
-
-
-x <- 0
-if (x < 0) {
-  print("Numero negativo")
-} else if (x > 0) {
-  print("Numero positivo")
-} else {
-  print("Cero")
-}
+presion (900)
 
 #2. sistema de ecuaciones 
 
@@ -43,11 +56,11 @@ library(dplyr)
 
 #Cargando el conjunto de datos 
 
-data<-read.csv("data/mods_clima_uh.csv")
+datos<-read_csv("data/mods_clima_uh.csv")
 head(datos)
 names(datos)
-datos <- tibble(data)
 tail(datos$bh_esc)
+
 #se solicita lo sgte:
 
 #a. Precipitación acumulada anual (Valores observados) para la cuenca asignada. 
@@ -56,18 +69,79 @@ tail(datos$bh_esc)
 
 (chala<- datos %>% 
   dplyr:: filter(uh_name == "Cuenca Chala") %>% 
-  group_by(bh_esc = "Observado") %>% 
+  group_by(bh_esc) %>% 
   summarise(pp_acum = sum(bh_pc, na.rm= T)))
+
+
+#Cuenca Tumbes
+
+(Tumbes<- datos %>% 
+    filter (uh_name == "Cuenca Tumbes" ,bh_esc == "Observado" ) %>% 
+    summarise(pp_acum = sum(bh_pc, na.rm= T)))
+
+#a ##########
+datos%>% 
+  filter(uh_name == "Cuenca Tumbes") %>%                       
+  group_by(bh_esc) %>% 
+  summarise(bh_pc = sum(bh_pc, na.rm = T))
+
+#b
+
+#filtrando cada modelo 
+
+(OBSERVADO <- datos %>% 
+  filter (uh_name == "Cuenca Tumbes" ,bh_esc == "Observado" )%>% 
+    select(bh_pc)) 
+(ACCESS <- datos %>% 
+  filter (uh_name == "Cuenca Tumbes" ,bh_esc == "ACCESS 1.0") %>% 
+    select(bh_pc))
+
+(HADGEM2 <- datos %>% 
+  filter (uh_name == "Cuenca Tumbes" ,bh_esc == "HadGEM2-ES" ) %>% 
+    select(bh_pc))
+
+(MPI <- datos %>% 
+  filter (uh_name == "Cuenca Tumbes" ,bh_esc == "MPI-ESM-LR" ) %>% 
+    select(bh_pc))
+
+#hallamos el sesgo 
+
+#metodo01 
+
+(ses_acces <- abs((((OBSERVADO - ACCESS)/OBSERVADO))*100))
+(ses_HADGEM2 <- abs((((OBSERVADO - HADGEM2)/OBSERVADO))*100))
+(ses_MPI <- abs((((OBSERVADO - MPI)/OBSERVADO))*100))
+
+nombres<- c("ACCES", "HADGEM2", "PMI")
+(tabla <- data.frame(ses_acces,ses_HADGEM2,ses_MPI))
+(colnames(tabla)<- nombres)
+tabla
+
+#metodo02 - PBIAS
+
+install.packages("hydroGOF")
+library(hydroGOF)
+
+ses_acces01 <- pbias(ACCESS,OBSERVADO, na.rm = T)
+ses_HADGEM02 <- pbias(HADGEM2,OBSERVADO, na.rm = T)
+ses_MPI <- pbias(MPI,OBSERVADO, na.rm = T)
+
+nombres<- c("ACCES", "HADGEM2", "PMI")
+tabla02 <- data.frame(ses_acces,ses_HADGEM2,ses_MPI)
+colnames(tabla02)<- nombres
+tabla02
+
+#(c) De la pregunta anterior, ¿Cuál es el escenario climático más preciso? Fundamente su respuesta. 
+
+#d.
 
 
 ###### PARTE 3 ###########3
 
 "temperatura diaria (1928-2015)"
 
-dt<- read.csv("data/temperatureDataset.csv")
+temp<- read_csv("data/temperatureDataset.csv")
 
-
-temp<-tibble(dt)
 grupo8<- temp %>% 
   dplyr::select("DATE","qc00000746") %>%  
   mutate_all(funs(replace(., .=="-99.9",NA)) ) %>% 
@@ -161,6 +235,12 @@ plot(x=periodo1$DATE, y=periodo1$tt_mes, pch='o',
 plot(x=periodo1$DATE, y=periodo1$tt_mes, pch='o',
      xlab= "Mes",
      ylab='Temperatura')
+
+#plotear como líneas 
+
+
+
+
 
 #e. Plotear con boxplot variablidad mensual de valores mensuales Ene-Dic Periodo 1980-2013 y describirlo 
 
